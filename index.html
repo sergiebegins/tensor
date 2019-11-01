@@ -1,0 +1,125 @@
+
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="./imgAnalyz.js"></script>
+
+    <script src="http://localhost:8888/watermark.js"></script>
+    <script src="http://localhost:8888/proceduralWatermark.js"></script>
+<script type="application/javascript">
+
+
+   window.onload =async  function() {
+
+
+       navigator.mediaDevices.getUserMedia({video: true})
+           .then(function(stream) {
+               document.getElementById('kamera').srcObject = stream;
+               var canvas = document.getElementById("c");
+               var video = document.getElementById("kamera");
+
+               $(document).on("click","#b",async function(){
+
+                   canvas.getContext("2d").drawImage(video, 0, 0, 640, 640, 0, 0, 480, 480);
+                   var dataUrl = canvas.toDataURL("image/png");
+
+
+                   imageFoo = document.getElementById('img_');
+                   imageFoo.src = dataUrl;
+
+                   await yuzTespit(dataUrl);
+
+               })
+
+
+           }).catch(function() {
+           alert('Kameraya bağlanılamadı');
+       });
+
+
+       async function yuzTespit(dataUrl) {
+
+           const imageElement = document.getElementById('img_');
+           const poses = await imgAnalyz(imageElement);
+
+
+           my_watermarked = new Watermark();     // Create new object instance
+
+           my_watermarked.setPicture(dataUrl);
+
+
+
+           $.each(poses,function (key,val) {
+               if(val.score >0.3){
+                   $.each(val.keypoints,function (k,v) {
+                       if(v.score>0.7){
+
+                           my_watermarked.addWatermark( proceduralWatermark( 640,480,v.position.x,v.position.y),
+                               {
+                                   position: [1,0]
+                               });
+
+                       }
+                   });
+
+               }
+           });
+
+
+           my_watermarked .render( function(){
+
+               var resulting_imgs = my_watermarked.getImgs( 'image/png' );
+
+
+               $.each( resulting_imgs, function(idx, item) {
+
+                   $('body').append( $(item) );
+               });
+
+           });
+       }
+
+
+   };
+
+
+
+
+</script>
+
+    <style>
+        #img{
+            width: 400px;
+        }
+        .container {
+            height: auto;
+            overflow: hidden;
+        }
+
+        .right {
+            width: 70%;
+            float: right;
+        }
+
+        .left {
+            float: none; /* not needed, just for clarification */
+            width: 28%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="left">
+        <video id="kamera" autoplay> </video>
+        <button type="button"  id="b" name="button">Take Picture</button>
+        <canvas id="c" style="display:none;" width="640" height="480"></canvas>
+        <img id="img_" width="640" height="480"  src="http://localhost:8888/noimage.png" crossorigin="anonymous"/>
+        <div class="example" id="text">
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
